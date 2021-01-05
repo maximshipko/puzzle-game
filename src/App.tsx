@@ -7,7 +7,7 @@ type GameState = {
   image: string;
   imageSize: [number, number];
   rotatePieces: boolean;
-  snapPieces: boolean;
+  snapTrasholdPx: number;
 };
 type Piece = {
   index: number;
@@ -15,17 +15,40 @@ type Piece = {
   position: [number, number];
   row: number;
   col: number;
+  width: number;
+  height: number;
   style: React.CSSProperties; // rendom part
   done: boolean;
+  neighbors: {
+    [key in "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br"]?: Piece;
+  };
 };
 const initialState: GameState = {
   complexity: 4,
   image: picture,
   imageSize: [400, 400],
   rotatePieces: true,
-  snapPieces: true,
+  snapTrasholdPx: 10,
 };
 
+const makePieces = (game: GameState): Piece[] => {
+  const pieces = Array(game.complexity * game.complexity)
+    .fill(undefined)
+    .map((_, i) => makePiece(game, i));
+  const N = game.complexity;
+  pieces.forEach((p, i) => {
+    const t = pieces[i - N];
+    const b = pieces[i + N];
+    const r = p.col !== N - 1 ? pieces[i + 1] : undefined;
+    const l = p.col !== 0 ? pieces[i - 1] : undefined;
+    const tr = t && r ? pieces[i - N + 1] : undefined;
+    const tl = t && l ? pieces[i - N - 1] : undefined;
+    const br = b && r ? pieces[i + N + 1] : undefined;
+    const bl = b && l ? pieces[i + N - 1] : undefined;
+    p.neighbors = { t, b, r, l, tr, tl, br, bl };
+  });
+  return pieces;
+};
 const makePiece = (game: GameState, index: number): Piece => {
   const [width, height] = game.imageSize;
   const N = game.complexity;
@@ -33,7 +56,7 @@ const makePiece = (game: GameState, index: number): Piece => {
   const pieceHeight = Math.floor(height / N);
   const row = Math.floor(index / N);
   const col = index % N;
-  const rotate = game.rotatePieces ? Math.floor(Math.random() * 5) * 90 : 0;
+  const rotate = game.rotatePieces ? Math.floor(Math.random() * 4) * 90 : 0;
   const position: Piece["position"] = [
     Math.floor(Math.random() * 800),
     Math.floor(Math.random() * 600),
@@ -56,6 +79,7 @@ const makePiece = (game: GameState, index: number): Piece => {
   if (col === 0 && row === N - 1) style.borderBottomLeftRadius = cornerRadius;
   if (col === N - 1 && row === N - 1)
     style.borderBottomRightRadius = cornerRadius;
+  const neighbors = {};
 
   return {
     index,
@@ -63,8 +87,11 @@ const makePiece = (game: GameState, index: number): Piece => {
     position,
     row,
     col,
+    width: pieceWidth,
+    height: pieceHeight,
     style,
     done: false,
+    neighbors,
   };
 };
 
@@ -89,9 +116,8 @@ function App() {
   const draggableZone = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    const pieces: Piece[] = Array(game.complexity * game.complexity)
-      .fill(undefined)
-      .map((_, i) => makePiece(game, i));
+    const pieces = makePieces(game);
+    console.log(pieces);
     const shuffledPieces = shuffleArray(pieces);
     setPieces(shuffledPieces);
   }, [game]);
@@ -107,7 +133,8 @@ function App() {
           ...piece.style,
           transform: `rotate(${piece.rotate}deg)`,
         };
-        setPieces([...pieces]);
+        const validatedPieces = validatePieces(pieces, game.complexity);
+        setPieces([...validatedPieces]);
       }
     }
   };
@@ -152,7 +179,10 @@ function App() {
         e.clientX - shiftX - draggableZone.current.getBoundingClientRect().left,
         e.clientY - shiftY - draggableZone.current.getBoundingClientRect().top,
       ];
-      const validatedPieces = validatePieces(game, pieces, index);
+
+      tryToSnap(pieces, piece, game.snapTrasholdPx);
+
+      const validatedPieces = validatePieces(pieces, game.complexity);
       piece.style = {
         ...piece.style,
         left: piece.position[0],
@@ -163,7 +193,6 @@ function App() {
   };
   const dragover = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    // console.log("Drag OVer");
   };
   const dragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -201,6 +230,7 @@ function App() {
                   draggable
                 >
                   {p.index}
+                  {p.done ? "✅" : null}
                 </div>
               ))
             : null}
@@ -212,54 +242,51 @@ function App() {
 
 export default App;
 
-function validatePieces(
-  game: GameState,
-  pieces: Piece[],
-  index: number
-): Piece[] {
-  const [width, height] = game.imageSize;
-  const N = game.complexity;
-  const pieceWidth = Math.floor(width / N);
-  const pieceHeight = Math.floor(height / N);
-  const justDropPiece = pieces.find((p) => p.index === index);
+function validatePieces(pieces: Piece[], N: number): Piece[] {
+  // piece is completed when it is not rotated and all neighbors are on place
+  for (let piece of pieces) {
+    if (piece.rotate % 360 !== 0) {
+      piece.done = false;
+    } else {
+      piece.done = false;
+      for (let neighborKey in piece.neighbors) {
+        const key = neighborKey as keyof Piece["neighbors"];
 
-  if (justDropPiece) {
-    tryToSnap(pieces, pieceWidth, pieceHeight, justDropPiece);
+        if (
+          piece.neighbors[key] &&
+          piece.neighbors[key]!.rotate % 360 === 0 &&
+          validateNeighborPiece(piece, piece.neighbors[key]!, key)
+        ) {
+          piece.done = true;
+          piece.neighbors[key]!.done = true;
+        }
+      }
+    }
   }
-
   return [...pieces];
 }
 
-function tryToSnap(
-  pieces: Piece[],
-  width: number,
-  height: number,
-  openPiece: Piece
-) {
+function tryToSnap(pieces: Piece[], openPiece: Piece, trashold: number) {
+  if (!trashold) return;
   for (let piece of pieces) {
-    if (snapPiece(openPiece, piece, width, height)) return;
+    if (snapPiece(openPiece, piece, trashold)) return;
   }
 }
-function snapPiece(
-  a: Piece,
-  b: Piece,
-  width: number,
-  height: number,
-  trashold = 10
-): Boolean {
+function snapPiece(a: Piece, b: Piece, trashold = 10): Boolean {
   // corrects A position, if it is close to B
   const [xa, ya] = a.position;
   const [xb, yb] = b.position;
+  const { width, height } = a;
   const diffX = xa - xb;
   const dX = Math.sign(diffX); // +1 or -1
-  const sameX = between(Math.abs(diffX), -trashold, trashold);
-  const closeX = between(Math.abs(diffX), width - trashold, width + trashold);
+  const sameX = inRange(Math.abs(diffX), -trashold, trashold);
+  const closeX = inRange(Math.abs(diffX), width - trashold, width + trashold);
   if (!sameX && !closeX) return false;
 
   const diffY = ya - yb;
   const dY = Math.sign(diffY);
-  const sameY = between(Math.abs(diffY), -trashold, trashold);
-  const closeY = between(Math.abs(diffY), height - trashold, height + trashold);
+  const sameY = inRange(Math.abs(diffY), -trashold, trashold);
+  const closeY = inRange(Math.abs(diffY), height - trashold, height + trashold);
   if (!sameY && !closeY) return false;
 
   if (sameX && sameY) {
@@ -284,6 +311,37 @@ function snapPiece(
   return false;
 }
 
-function between(n: number, a: number, b: number) {
-  return a <= n && n <= b;
+function inRange(num: number, a: number, b = 0): boolean {
+  return Math.min(a, b) <= num && num < Math.max(a, b);
+}
+
+function validateNeighborPiece(
+  piece: Piece,
+  neighbor: Piece,
+  type: keyof Piece["neighbors"]
+) {
+  const [X, Y] = piece.position;
+  const [x, y] = neighbor.position;
+  const width = piece.width;
+  const height = piece.height;
+  switch (type) {
+    case "t":
+      return x === X && Y - y === height;
+    case "b":
+      return x === X && Y - y === -height;
+    case "l":
+      return X - x === width && Y === y;
+    case "r":
+      return X - x === -width && Y === y;
+    case "tl":
+      return X - x === width && Y - y === height;
+    case "tr":
+      return X - x === -width && Y - y === height;
+    case "bl":
+      return X - x === width && Y - y === -height;
+    case "br":
+      return X - x === -width && Y - y === -height;
+  }
+
+  return false;
 }
