@@ -3,7 +3,7 @@ import "./App.scss";
 import picture from "./picture1.jpg";
 
 type GameState = {
-  complexity: 2 | 4 | 8 | 16;
+  complexity: number; // 2 | 4 | 8 | 16
   image: string;
   imageSize: [number, number];
   rotatePieces: boolean;
@@ -245,6 +245,54 @@ function App() {
       <hr />
       <div>
         <h4>Settings</h4>
+        <p>
+          <input
+            type="text"
+            value={game.image}
+            onChange={(e) => setGame({ ...game, image: e.target.value })}
+          />
+        </p>
+        <p>
+          <input
+            type="number"
+            value={game.complexity}
+            min={2}
+            max={16}
+            onChange={(e) =>
+              setGame({
+                ...game,
+                complexity: parseInt(e.target.value, 10) || 4,
+              })
+            }
+          />
+          &times;{game.complexity}pieces
+        </p>
+        <p>
+          <input
+            type="number"
+            min={0}
+            max={10}
+            value={game.snapTrasholdPx}
+            onChange={(e) =>
+              setGame({
+                ...game,
+                snapTrasholdPx: parseInt(e.target.value) || 0,
+              })
+            }
+          />
+          px.
+        </p>
+        <p>
+          <input
+            type="checkbox"
+            id="rotateCheckbox"
+            checked={game.rotatePieces}
+            onChange={(e) =>
+              setGame({ ...game, rotatePieces: e.target.checked })
+            }
+          />
+          <label htmlFor="rotateCheckbox">&nbsp;rotate pieces</label>
+        </p>
       </div>
     </div>
   );
