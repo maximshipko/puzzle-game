@@ -1,0 +1,34 @@
+.App {
+  margin: 2em;
+}
+.pieces {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 700px;
+
+  &_draggable-zone {
+  }
+  .piece {
+    &__img {
+      transition: transform 0.3s ease;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      border-radius: 2px;
+    }
+    &_draggable {
+      cursor: pointer;
+      position: absolute;
+    }
+    &_done {
+      .piece__img {
+        border-radius: 0;
+      }
+    }
+
+    &_away {
+      opacity: 0.001;
+    }
+  }
+}
