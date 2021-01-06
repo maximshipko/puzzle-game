@@ -1,24 +1,30 @@
 .App {
-  margin: 1em;
+  margin: 2em;
 }
 .pieces {
   position: relative;
   width: 100%;
   height: 100vh;
-  outline: solid red 1px;
+  min-height: 700px;
 
   &_draggable-zone {
   }
   .piece {
-    transition: transform 0.3s ease;
-
+    &__img {
+      transition: transform 0.3s ease;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      border-radius: 2px;
+    }
     &_draggable {
       cursor: pointer;
       position: absolute;
-      border-radius: 2px;
     }
     &_done {
-      border-radius: 0;
+      .piece__img {
+        border-radius: 0;
+      }
     }
 
     &_away {

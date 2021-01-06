@@ -11,13 +11,14 @@ type GameState = {
 };
 type Piece = {
   index: number;
-  rotate: number; // 0 | 90 | 180 | 270;
+  rotate: number; // deg
   position: [number, number];
   row: number;
   col: number;
   width: number;
   height: number;
-  style: React.CSSProperties; // rendom part
+  style: React.CSSProperties;
+  imageStyle: React.CSSProperties;
   done: boolean;
   neighbors: {
     [key in "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br"]?: Piece;
@@ -65,20 +66,23 @@ const makePiece = (game: GameState, index: number): Piece => {
   const style: React.CSSProperties = {
     width: pieceWidth,
     height: pieceHeight,
+    left: position[0],
+    top: position[1],
+  };
+  const imageStyle: React.CSSProperties = {
     backgroundImage: `url(${game.image})`,
     backgroundPositionX: -col * pieceWidth,
     backgroundPositionY: -row * pieceHeight,
     transform: `rotate(${rotate}deg)`,
-    position: "absolute",
-    left: position[0],
-    top: position[1],
   };
   const cornerRadius = 10;
-  if (col === 0 && row === 0) style.borderTopLeftRadius = cornerRadius;
-  if (col === N - 1 && row === 0) style.borderTopRightRadius = cornerRadius;
-  if (col === 0 && row === N - 1) style.borderBottomLeftRadius = cornerRadius;
+  if (col === 0 && row === 0) imageStyle.borderTopLeftRadius = cornerRadius;
+  if (col === N - 1 && row === 0)
+    imageStyle.borderTopRightRadius = cornerRadius;
+  if (col === 0 && row === N - 1)
+    imageStyle.borderBottomLeftRadius = cornerRadius;
   if (col === N - 1 && row === N - 1)
-    style.borderBottomRightRadius = cornerRadius;
+    imageStyle.borderBottomRightRadius = cornerRadius;
   const neighbors = {};
 
   return {
@@ -90,6 +94,7 @@ const makePiece = (game: GameState, index: number): Piece => {
     width: pieceWidth,
     height: pieceHeight,
     style,
+    imageStyle,
     done: false,
     neighbors,
   };
@@ -129,8 +134,8 @@ function App() {
       const piece = pieces.find((p) => p.index === index);
       if (piece) {
         piece.rotate += 90;
-        piece.style = {
-          ...piece.style,
+        piece.imageStyle = {
+          ...piece.imageStyle,
           transform: `rotate(${piece.rotate}deg)`,
         };
         const validatedPieces = validatePieces(pieces, game.complexity);
@@ -229,12 +234,17 @@ function App() {
                   style={p.style}
                   draggable
                 >
-                  {p.index}
-                  {p.done ? "✅" : null}
+                  <div className="piece__img" style={p.imageStyle}>
+                    {p.done ? "✅" : null}
+                  </div>
                 </div>
               ))
             : null}
         </div>
+      </div>
+      <hr />
+      <div>
+        <h4>Settings</h4>
       </div>
     </div>
   );
