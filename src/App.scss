@@ -21,9 +21,10 @@
       cursor: pointer;
       position: absolute;
     }
-    &_done {
+    &_placed {
       .piece__img {
         border-radius: 0;
+        text-shadow: 1px 1px 2px white;
       }
     }
 

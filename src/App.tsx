@@ -3,7 +3,7 @@ import "./App.scss";
 import picture from "./picture1.jpg";
 
 type GameState = {
-  complexity: number; // 2 | 4 | 8 | 16
+  complexity: number; // number of pieces
   image: string;
   imageSize: [number, number];
   rotatePieces: boolean;
@@ -19,7 +19,8 @@ type Piece = {
   height: number;
   style: React.CSSProperties;
   imageStyle: React.CSSProperties;
-  done: boolean;
+  placed: boolean; // true if at least one neighbor is placed
+  completed: boolean; // true if all neighbors are placed
   neighbors: {
     [key in "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br"]?: Piece;
   };
@@ -95,7 +96,8 @@ const makePiece = (game: GameState, index: number): Piece => {
     height: pieceHeight,
     style,
     imageStyle,
-    done: false,
+    placed: false,
+    completed: false,
     neighbors,
   };
 };
@@ -227,7 +229,7 @@ function App() {
             ? pieces.map((p) => (
                 <div
                   className={`piece piece_draggable ${
-                    p.done ? "piece_done" : ""
+                    p.placed ? "piece_placed" : ""
                   }`}
                   key={p.index}
                   data-piece-index={p.index}
@@ -235,7 +237,8 @@ function App() {
                   draggable
                 >
                   <div className="piece__img" style={p.imageStyle}>
-                    {p.done ? "✅" : null}
+                    {p.placed ? p.index : null}
+                    {p.completed ? "✅" : null}
                   </div>
                 </div>
               ))
@@ -304,19 +307,24 @@ function validatePieces(pieces: Piece[], N: number): Piece[] {
   // piece is completed when it is not rotated and all neighbors are on place
   for (let piece of pieces) {
     if (piece.rotate % 360 !== 0) {
-      piece.done = false;
+      piece.placed = false;
+      piece.completed = false;
     } else {
-      piece.done = false;
+      piece.placed = false;
+      piece.completed = true;
       for (let neighborKey in piece.neighbors) {
         const key = neighborKey as keyof Piece["neighbors"];
-
-        if (
-          piece.neighbors[key] &&
-          piece.neighbors[key]!.rotate % 360 === 0 &&
-          validateNeighborPiece(piece, piece.neighbors[key]!, key)
-        ) {
-          piece.done = true;
-          piece.neighbors[key]!.done = true;
+        if (piece.neighbors[key]) {
+          if (
+            piece.neighbors[key]!.rotate % 360 === 0 &&
+            validateNeighborPiece(piece, piece.neighbors[key]!, key)
+          ) {
+            piece.placed = true;
+            piece.completed = piece.completed && true;
+            piece.neighbors[key]!.placed = true;
+          } else {
+            piece.completed = piece.completed && false;
+          }
         }
       }
     }
