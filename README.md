@@ -1,12 +1,12 @@
-[![Netlify Status](https://api.netlify.com/api/v1/badges/92676bb1-cfba-4f72-a089-07e2b0e8031f/deploy-status)](https://app.netlify.com/sites/friendly-kepler-5fccb8/deploys)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/92676bb1-cfba-4f72-a089-07e2b0e8031f/deploy-status)](https://app.netlify.com/sites/puzzle-game-react/deploys)
 
 # Puzzle game
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-### `yarn start`
+## Demo
 
-https://friendly-kepler-5fccb8.netlify.app
+https://puzzle-game-react.netlify.app
 
 # TODO
 
