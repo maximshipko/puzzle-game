@@ -1,6 +1,7 @@
 import React from "react";
 import "./App.scss";
 import picture from "./picture1.jpg";
+import { PieceType, Piece } from "./Piece";
 
 type GameState = {
   complexity: number; // number of pieces
@@ -9,22 +10,7 @@ type GameState = {
   rotatePieces: boolean;
   snapTrasholdPx: number;
 };
-type Piece = {
-  index: number;
-  rotate: number; // deg
-  position: [number, number];
-  row: number;
-  col: number;
-  width: number;
-  height: number;
-  style: React.CSSProperties;
-  imageStyle: React.CSSProperties;
-  placed: boolean; // true if at least one neighbor is placed
-  completed: boolean; // true if all neighbors are placed
-  neighbors: {
-    [key in "t" | "b" | "l" | "r" | "tl" | "tr" | "bl" | "br"]?: Piece;
-  };
-};
+
 const initialState: GameState = {
   complexity: 4,
   image: picture,
@@ -33,7 +19,7 @@ const initialState: GameState = {
   snapTrasholdPx: 10,
 };
 
-const makePieces = (game: GameState): Piece[] => {
+const makePieces = (game: GameState): PieceType[] => {
   const pieces = Array(game.complexity * game.complexity)
     .fill(undefined)
     .map((_, i) => makePiece(game, i));
@@ -51,7 +37,7 @@ const makePieces = (game: GameState): Piece[] => {
   });
   return pieces;
 };
-const makePiece = (game: GameState, index: number): Piece => {
+const makePiece = (game: GameState, index: number): PieceType => {
   const [width, height] = game.imageSize;
   const N = game.complexity;
   const pieceWidth = Math.floor(width / N);
@@ -59,7 +45,7 @@ const makePiece = (game: GameState, index: number): Piece => {
   const row = Math.floor(index / N);
   const col = index % N;
   const rotate = game.rotatePieces ? Math.floor(Math.random() * 4) * 90 : 0;
-  const position: Piece["position"] = [
+  const position: PieceType["position"] = [
     Math.floor(Math.random() * 800),
     Math.floor(Math.random() * 600),
   ];
@@ -119,7 +105,7 @@ const shuffleArray = <T extends unknown>(arr: Array<T>): Array<T> => {
 
 function App() {
   const [game, setGame] = React.useState(() => initialState);
-  const [pieces, setPieces] = React.useState<Piece[] | null>(null);
+  const [pieces, setPieces] = React.useState<PieceType[] | null>(null);
   const draggableZone = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -225,24 +211,7 @@ function App() {
           onDragLeave={dragLeave}
           onDragEnter={dragEnter}
         >
-          {pieces
-            ? pieces.map((p) => (
-                <div
-                  className={`piece piece_draggable ${
-                    p.placed ? "piece_placed" : ""
-                  }`}
-                  key={p.index}
-                  data-piece-index={p.index}
-                  style={p.style}
-                  draggable
-                >
-                  <div className="piece__img" style={p.imageStyle}>
-                    {p.placed ? p.index : null}
-                    {p.completed ? "✅" : null}
-                  </div>
-                </div>
-              ))
-            : null}
+          {pieces ? pieces.map((p) => <Piece key={p.index} {...p} />) : null}
         </div>
       </div>
       <hr />
@@ -303,7 +272,7 @@ function App() {
 
 export default App;
 
-function validatePieces(pieces: Piece[], N: number): Piece[] {
+function validatePieces(pieces: PieceType[], N: number): PieceType[] {
   // piece is completed when it is not rotated and all neighbors are on place
   for (let piece of pieces) {
     if (piece.rotate % 360 !== 0) {
@@ -313,7 +282,7 @@ function validatePieces(pieces: Piece[], N: number): Piece[] {
       piece.placed = false;
       piece.completed = true;
       for (let neighborKey in piece.neighbors) {
-        const key = neighborKey as keyof Piece["neighbors"];
+        const key = neighborKey as keyof PieceType["neighbors"];
         if (piece.neighbors[key]) {
           if (
             piece.neighbors[key]!.rotate % 360 === 0 &&
@@ -332,13 +301,17 @@ function validatePieces(pieces: Piece[], N: number): Piece[] {
   return [...pieces];
 }
 
-function tryToSnap(pieces: Piece[], openPiece: Piece, trashold: number) {
+function tryToSnap(
+  pieces: PieceType[],
+  openPiece: PieceType,
+  trashold: number
+) {
   if (!trashold) return;
   for (let piece of pieces) {
     if (snapPiece(openPiece, piece, trashold)) return;
   }
 }
-function snapPiece(a: Piece, b: Piece, trashold = 10): Boolean {
+function snapPiece(a: PieceType, b: PieceType, trashold = 10): Boolean {
   // corrects A position, if it is close to B
   const [xa, ya] = a.position;
   const [xb, yb] = b.position;
@@ -382,9 +355,9 @@ function inRange(num: number, a: number, b = 0): boolean {
 }
 
 function validateNeighborPiece(
-  piece: Piece,
-  neighbor: Piece,
-  type: keyof Piece["neighbors"]
+  piece: PieceType,
+  neighbor: PieceType,
+  type: keyof PieceType["neighbors"]
 ) {
   const [X, Y] = piece.position;
   const [x, y] = neighbor.position;
