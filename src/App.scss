@@ -4,7 +4,7 @@
 .pieces {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: calc(98vh - 4em);
   min-height: 700px;
 
   &_draggable-zone {
